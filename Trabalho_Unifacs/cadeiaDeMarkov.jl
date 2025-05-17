@@ -1,3 +1,5 @@
+using LinearAlgebra
+
 function menu()
     # Solicita o tamanho da matriz
     print("Qual é o tamanho da matriz? ")
@@ -48,7 +50,25 @@ function menu()
     return matriz
 end
 
+function Calcular_Probabilidade(matriz::Matrix{Float64})
+
+    #pegando a linha 1
+    a = matriz[1,1] -1
+    b = matriz[1,2]
+
+    #calculando a porcentagem
+    x = b / (b - a)
+    y = 1 - x
+
+    return[x, y]
+end
+
 matriz_resultante = menu()
+R = Calcular_Probabilidade(matriz_resultante)
 
 println("\nMatriz")
 println(matriz_resultante)
+
+println("Resposta da cadeia de Markov")
+println("X = (", round(R[1]*100, digits=2),"%)")
+println("X = (", round(R[2]*100, digits=2),"%)")
