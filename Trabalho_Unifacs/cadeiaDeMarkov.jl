@@ -71,4 +71,4 @@ println(matriz_resultante)
 
 println("Resposta da cadeia de Markov")
 println("X = (", round(R[1]*100, digits=2),"%)")
-println("X = (", round(R[2]*100, digits=2),"%)")
+println("y = (", round(R[2]*100, digits=2),"%)")
