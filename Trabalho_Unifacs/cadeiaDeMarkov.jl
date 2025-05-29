@@ -1,46 +1,61 @@
-using LinearAlgebra
-
+# Função principal que orquestra o processo
 function menu()
+    # Recebendo a matriz
+    matriz_resultante = criar_matriz()
+    # Incluindo o resultado da probabilidade em R
+    R = Calcular_Probabilidade(matriz_resultante)
+
+    # Exibe a matriz inserida
+    println("\nMatriz")
+    println(matriz_resultante)
+
+    try
+        # Exibe os resultados formatados como porcentagens
+        println("Resposta da cadeia de Markov")
+        println("X = (", round(R[1] * 100, digits=2), "%)")
+        println("y = (", round(R[2] * 100, digits=2), "%)")
+    catch e
+        # Em caso de erro, reinicia o menu
+        println("tente novamente")
+        return menu()
+    end
+end
+
+# Função para criar a matriz a partir da entrada do usuário
+function criar_matriz()
     # Solicita o tamanho da matriz
     print("Qual é o tamanho da matriz? ")
     valor = readline()
     tamanho_vetor = parse(Int, valor)
-    # valida o tamanho
-    try
-        tamanho_vetor <= 0 && error("O tamanho deve ser um número positivo!")
-    catch e
-        error("Por favor, digite um número inteiro válido para o tamanho!")
+    
+    # Valida o tamanho da matriz
+    if tamanho_vetor == 0
+        println("valor tem que ser maior que zero")
+        return criar_matriz()  # Recursão para nova tentativa
     end
 
-    # Cria a matriz
+    # Inicializa uma matriz de zeros com o tamanho especificado
     matriz = zeros(tamanho_vetor, tamanho_vetor)
 
-    # Preenche cada coluna
+    # Preenche cada coluna da matriz
     for i in 1:tamanho_vetor
         println("\nDigite dois números para a coluna $i (separados por espaço, soma deve ser 1):")
 
-        # Lê e valida a entrada
+        # Loop para validação da entrada
         while true
             try
                 valor_coluna = readline()
                 valorDaColuna = [parse(Float64, x) for x in split(valor_coluna)]
 
-                # Verifica se tem exatamente 2 números
+                # Verifica se foram inseridos exatamente 2 números
                 if length(valorDaColuna) != 2
                     println("Erro: Digite exatamente dois números separados por espaço!")
                     continue
                 end
 
-                # Verifica se a soma é 1
-                soma = round(valorDaColuna[1] + valorDaColuna[2])
-                if soma != 1.0
-                    println("Erro: A soma dos números deve ser igual a 1 (soma atual = $soma)")
-                    continue
-                end
-
-                # Atribui os valores à coluna
+                # Atribui os valores à coluna correspondente
                 matriz[:, i] = valorDaColuna
-                break  # Sai do loop while se tudo estiver correto
+                break  # Sai do loop quando a entrada é válida
 
             catch e
                 println("Erro: Por favor, digite números válidos!")
@@ -50,25 +65,24 @@ function menu()
     return matriz
 end
 
+# Função para calcular as probabilidades da cadeia de Markov
 function Calcular_Probabilidade(matriz::Matrix{Float64})
+    # Verifica se a soma dos elementos da primeira coluna é 1
+    soma = matriz[1, 1] + matriz[2, 1]
+    if soma !== 1.0
+        return println("Erro: A soma dos números deve ser igual a 1 (soma atual = $soma)")
+    end
 
-    #pegando a linha 1
-    a = matriz[1,1] -1
-    b = matriz[1,2]
+    # Extrai os elementos relevantes da matriz
+    a = matriz[1, 1] - 1  # Ajusta o elemento a11 para o cálculo
+    b = matriz[1, 2]       # Elemento a12
 
-    #calculando a porcentagem
-    x = b / (b - a)
-    y = 1 - x
+    # Calcula as probabilidades estacionárias
+    x = b / (b - a)  # Probabilidade do estado X
+    y = 1 - x        # Probabilidade do estado Y (complementar)
 
-    return[x, y]
+    return [x, y]
 end
 
-matriz_resultante = menu()
-R = Calcular_Probabilidade(matriz_resultante)
-
-println("\nMatriz")
-println(matriz_resultante)
-
-println("Resposta da cadeia de Markov")
-println("X = (", round(R[1]*100, digits=2),"%)")
-println("y = (", round(R[2]*100, digits=2),"%)")
+# Inicia o programa chamando a função menu
+menu()
