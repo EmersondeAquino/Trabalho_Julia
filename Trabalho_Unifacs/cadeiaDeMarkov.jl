@@ -1,88 +1,109 @@
-# Função principal que orquestra o processo
-function menu()
-    # Recebendo a matriz
-    matriz_resultante = criar_matriz()
-    # Incluindo o resultado da probabilidade em R
-    R = Calcular_Probabilidade(matriz_resultante)
+using LinearAlgebra
 
-    # Exibe a matriz inserida
-    println("\nMatriz")
-    println(matriz_resultante)
+# funcao principal: executa o menu do programa
+function menu()
+    matriz_resultante = criar_matriz()  # cria a matriz de transiçao
+    R = Calcular_Probabilidade(matriz_resultante)  # calculaa a distribuicao estacionária
+
+    # exibe a matriz de transição inserida
+    println("\nMatriz de transição inserida:")
+    for i in 1:size(matriz_resultante, 1)
+        println(matriz_resultante[i, :])
+    end
 
     try
-        # Exibe os resultados formatados como porcentagens
-        println("Resposta da cadeia de Markov")
-        println("X = (", round(R[1] * 100, digits=2), "%)")
-        println("y = (", round(R[2] * 100, digits=2), "%)")
+        # exibe a distribuiçao estacionária em porcentagem
+        println("\nDistribuição estacionária da cadeia de Markov (%):")
+        for i in 1:length(R)
+            porcentagem = round(R[i] * 100, digits=2)
+            println("estado $i = $porcentagem%")
+        end
+        println()
+        # exibe a interpretaçao de longo prazo para cada estado
+        for i in 1:length(R)
+            porcentagem = round(R[i] * 100, digits=2)
+            println("No longo prazo, a probabilidade do sistema estar no estado $i é $porcentagem%")
+        end
     catch e
-        # Em caso de erro, reinicia o menu
-        println("tente novamente")
+        println("Ocorreu um erro. Tente novamente.")
         return menu()
     end
 end
 
-# Função para criar a matriz a partir da entrada do usuário
+# funcao que cria uma matriz quadrada NxN onde cada linha deve somar 1
 function criar_matriz()
-    # Solicita o tamanho da matriz
-    print("Qual é o tamanho da matriz? ")
-    valor = readline()
-    tamanho_vetor = parse(Int, valor)
-    
-    # Valida o tamanho da matriz
-    if tamanho_vetor == 0
-        println("valor tem que ser maior que zero")
-        return criar_matriz()  # Recursão para nova tentativa
+    n = 0  # N começa valendo zero
+    try
+        # pede ao usuário o tamanho N da matriz N x N
+        print("Escreva o valor de N para a matriz N x N:")
+        valor = readline()  # lê a entrada do usuário como string
+        n = parse(Int, valor)  # converte a entrada para Int
+        # verifica se N é maior que zero
+        if n <= 0
+            println("O valor deve ser maior que zero.")
+            return criar_matriz()  # chama de novo a função se N for inválido
+        end
+    catch e
+        println("Entrada inválida. Por favor, insira um número inteiro.")
+        return criar_matriz()  # chama a função de novo se houver erro
     end
 
-    # Inicializa uma matriz de zeros com o tamanho especificado
-    matriz = zeros(tamanho_vetor, tamanho_vetor)
+    # iniciq uma matriz NxN preenchida com zeros
+    matriz = zeros(n, n)
 
-    # Preenche cada coluna da matriz
-    for i in 1:tamanho_vetor
-        println("\nDigite dois números para a coluna $i (separados por espaço, soma deve ser 1):")
+    # pede ao usuário que preencha cada linha da matriz
+    println("\nAgora, digite cada linha da matriz, separando os números por espaço (cada linha deve somar 1):")
 
-        # Loop para validação da entrada
-        while true
-            try
-                valor_coluna = readline()
-                valorDaColuna = [parse(Float64, x) for x in split(valor_coluna)]
+    # loop para preencher cada linha da matriz
+    for i in 1:n
+        try
+            while true  # loop infinit até que a linha seja válida
+                print("Linha $i: ")
+                entrada = readline()  # lê a linha digitada pelo usuário
+                valores = [parse(Float64, x) for x in split(entrada)]  # converte para números
 
-                # Verifica se foram inseridos exatamente 2 números
-                if length(valorDaColuna) != 2
-                    println("Erro: Digite exatamente dois números separados por espaço!")
-                    continue
+                # vê se o número de elementos digitados é igual a N
+                if length(valores) != n
+                    println("Erro: Digite exatamente $n números separados por espaço!")
+                    continue  # pede a linha de novo
                 end
 
-                # Atribui os valores à coluna correspondente
-                matriz[:, i] = valorDaColuna
-                break  # Sai do loop quando a entrada é válida
+                # calculaa a soma dos elementos da linha
+                soma = sum(valores)
 
-            catch e
-                println("Erro: Por favor, digite números válidos!")
+                # verifica se a soma é aproximadamente 1 (com tolerância para erros de ponto flutuante(linguagem n ajuda!))
+                if abs(soma - 1.0) > 1e-8
+                    println("Erro: A soma dos números da linha deve ser igual a 1 (soma atual = $soma)")
+                    continue  # Pede novamente a linha
+                end
+
+                # se passar nas verificaçoes preenche a linha da matriz
+                matriz[i, :] = valores
+                break  # sai do loop while e vai para a próxima linha
             end
+        catch e
+            println("Entrada inválida. Por favor, insira um número float EX(0.10).")
+            return criar_matriz() # chama a função de novo se houver erro
         end
     end
+
+    # retorna a matriz preenchida
     return matriz
 end
 
-# Função para calcular as probabilidades da cadeia de Markov
+# funcao para calcular a distribuição estacionaria da matriz de transição
 function Calcular_Probabilidade(matriz::Matrix{Float64})
-    # Verifica se a soma dos elementos da primeira coluna é 1
-    soma = matriz[1, 1] + matriz[2, 1]
-    if soma !== 1.0
-        return println("Erro: A soma dos números deve ser igual a 1 (soma atual = $soma)")
+    vals, vecs = eigen(matriz')  # calcula autovalores e autovetores da transposta
+    idx = findall(x -> isapprox(x, 1.0; atol=1e-8), vals)  # procura autovalor 1
+    if isempty(idx)
+        println("Não foi possível encontrar distribuição estacionária.")
+        return zeros(size(matriz, 1))
     end
-
-    # Extrai os elementos relevantes da matriz
-    a = matriz[1, 1] - 1  # Ajusta o elemento a11 para o cálculo
-    b = matriz[1, 2]       # Elemento a12
-
-    # Calcula as probabilidades estacionárias
-    x = b / (b - a)  # Probabilidade do estado X
-    y = 1 - x        # Probabilidade do estado Y (complementar)
-
-    return [x, y]
+    v = vecs[:, idx[1]]  # pega o autovetor correspondente
+    v = abs.(v)          # garante valores positivos
+    v = v / sum(v)       # normaliza para somar 1
+    return v
 end
 
-# Inicia o programa chamando a função menu
+# inicia o programa
 menu()
